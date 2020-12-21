@@ -1,0 +1,3 @@
+[aws]
+amz-ubuntu		ansible_host=18.216.83.78 ansible_port=22 ansible_user=ubuntu
+

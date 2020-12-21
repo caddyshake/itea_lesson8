@@ -1,0 +1,41 @@
+---
+- name: nginx installed?
+  command: dpkg-query -W nginx
+  register: nginx_check_deb
+  failed_when: nginx_check_deb.rc > 1
+  changed_when: nginx_check_deb.rc == 1
+  become: yes
+
+- name: Install package nginx
+  apt: name=nginx update_cache=yes
+  become: yes
+
+- name: Starting service nginx
+  service: name=nginx state=started
+  become: yes
+
+- name: Copy default config
+  copy:
+    src: default_nginx_conf
+    dest: /etc/nginx/sites-available/default
+    mode: 0644
+    backup: yes
+  become: true
+
+- name: nginx -t
+  command: " nginx -t -q " 
+  register: nginx_debug
+  failed_when: nginx_debug.rc >= 2
+  become: yes
+
+- name: reload nginx
+  service:
+    name: nginx
+    state: reloaded
+  when: nginx_debug.rc == 0
+  become: true
+  
+  
+  
+  
+  

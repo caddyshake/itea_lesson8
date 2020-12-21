@@ -1,0 +1,42 @@
+---
+- name: Update apt packages
+  become: true
+  apt:
+    update_cache: yes
+
+- name: install pac for install repository
+  apt:
+    name: "{{ item }}"
+    state: present
+  with_items:
+    - "software-properties-common"
+    - "apt-transport-https"
+    - "lsb-release"
+    - "ca-certificates"
+
+- name: Add key for repo
+  apt_key:
+    url: https://packages.sury.org/php/apt.gpg
+    keyring: /etc/apt/trusted.gpg.d/php.gpg
+
+- name: "Add repository for PHP Debian"
+  apt_repository:
+    repo: deb https://packages.sury.org/php/ {{ ansible_distribution_release }} main
+  when: ansible_distribution == "Debian"
+
+        # (ansible_distribution == "Debian" and ansible_distribution_major_version == "9") or
+        # (ansible_distribution == "Ubuntu" and ansible_distribution_major_version == "14") or
+
+- name: "Add repository for PHP Ubuntu"
+  apt_repository:
+    repo: ppa:ondrej/php
+  when: ansible_distribution == "Ubuntu"
+
+- name: Update apt packages
+  become: true
+  apt:
+    update_cache: yes
+
+- name: install PHP
+  apt:
+    name: "{{ php_install_packages }}"

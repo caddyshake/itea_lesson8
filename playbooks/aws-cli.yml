@@ -1,0 +1,28 @@
+---
+- hosts: aws
+  become: yes
+  become_method: sudo
+  tasks:
+  - name: Setup aws-cli
+    get_url:
+      url: https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip
+      dest: /root/awscliv2.zip
+      mode: 0777
+
+  - name: Extract 
+    unarchive:
+      src: /root/awscliv2.zip
+      dest: /root
+      remote_src: yes
+  - name: Copy aws
+    command: sudo cp /usr/local/bin/aws /bin/aws
+    command: sudo cp /usr/local/bin/aws /usr/bin/aws
+
+  - name: install 
+    command: sudo /root/aws/install --update
+
+  - name: Remove awscliv2
+    command: sudo rm -rf /root/awscliv2.zip
+
+  - name: Remvoe aws-cli-1
+    command: sudo rm -rf /usr/bin/aws

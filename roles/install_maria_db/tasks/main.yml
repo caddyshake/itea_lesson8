@@ -1,0 +1,27 @@
+---
+- name: Install package mariadb-server
+  apt: name=mariadb-server state=latest update_cache=yes
+  become: yes
+
+# - debug: msg="{{ shell_command }}"
+
+# - name: memory in server
+#   shell: "{{ shell_command }}"
+#   register: mem_for_mysql
+
+# - debug: msg="{{ mem_for_mysql.stdout }}"
+# - debug: msg="{{ mem_for_mysql }}"
+- name: install python-mysqldb
+  apt:
+    name: python3-mysqldb
+
+- name: copy config
+  template:
+    src: mysql_config
+    dest: /etc/mysql/mariadb.conf.d/50-server.cnf
+    backup: yes
+
+- name: restart mariadb-server
+  service:
+    name: mysql
+    state: restarted

@@ -1,0 +1,82 @@
+    - mysql_db: name="{{ item.sqluser }}" state=present
+      with_items: "{{ lamp }}"
+
+    - mysql_user:
+        name: "{{ item.sqluser }}"
+        password: "{{ item.sqlpass }}"
+        priv: '{{ item.sqluser }}.*:ALL'
+        state: present
+      with_items: "{{ lamp }}"
+
+    - name: Add user for WP
+      user:
+        name: "{{ item.user }}"
+        home: "/var/www/{{ item.name }}"
+      with_items: "{{ lamp }}"
+
+    - name: Create nginx config
+      become: true
+      template:
+        src: ../templates/wordpress.conf
+        dest: "/etc/nginx/sites-available/{{ item.name }}"
+      with_items: "{{ lamp }}"
+
+    - name: Nginx symlink enable site
+      become: true
+      file:
+         src: "/etc/nginx/sites-available/{{ item.name }}"
+         dest: "/etc/nginx/sites-enabled/{{ item.name }}"
+         state: link
+      with_items: "{{ lamp }}"
+
+    - name: Add php-fpm config
+      become: true
+      template:
+        src: ../templates/wp-php74.conf
+        dest: "/etc/php/7.4/fpm/pool.d/{{ item.name }}.conf"
+      with_items: "{{ lamp }}"
+
+    - name: wp core download
+      command:  wp core download --path="/var/www/{{ item.name }}" --allow-root
+      with_items: "{{ lamp }}"
+
+    - name: wp config create
+      command:  wp config create --dbname="{{ item.sqluser }}" --dbuser="{{ item.sqluser }}" --dbpass="{{ item.sqlpass }}" --locale=en_US --path="/var/www/{{ item.name }}" --allow-root
+      with_items: "{{ lamp }}"
+
+    - name: wp core install
+      command:  wp core install --path="/var/www/{{ item.name }}" --url="{{ item.name }}" --title="{{ item.user }}" --admin_user=admin --admin_password="{{ item.sqlpass }}" --admin_email=info@"{{ item.name }}" --allow-root
+      with_items: "{{ lamp }}"
+
+    - name: Changing MariaDB root password
+      mysql_user:
+        login_host: 'localhost'
+        login_user: 'root'
+        login_password: ''
+        name: 'itea'
+        password: '{{ vault_mysql_pass }}'
+        state: present
+      with_items: "{{ lamp }}"
+
+    - name: Set up wp-config
+      template:
+        src: "../templates/wp-config.php.j2"
+        dest: "/var/www/{{ item.name }}/wp-config.php"
+      with_items: "{{ lamp }}"
+
+    - name: restart nginx
+      shell: service nginx reload
+    - name: restart php-reload
+      shell: /etc/init.d/php7.4-fpm restart
+
+    - name: Change owner for Wordpress to be www-data user group
+      command: chown -R "{{ item.user }}":"{{ item.group }}" "/var/www/{{ item.name }}"
+      with_items: "{{ lamp }}"
+
+    - name: Change permission for all Wordpress directory
+      command: find "/var/www/{{ item.name }}" -type d -exec chmod 755 {} \;
+      with_items: "{{ lamp }}"
+
+    - name: Change permission for all Wordpress files
+      command: find "/var/www/{{ item.name }}" -type f -exec chmod 644 {} \;
+      with_items: "{{ lamp }}"
